@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Swell — Progressive Surf Report & Satellite Compass</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="top-bar">
+    <div class="bar-left">
+      <button class="spot-current-btn" id="btnOpenSpots">
+        <span id="navSpotName">Melbourne Shores</span>
+        <span class="region-badge" id="navSpotRegion">Florida</span>
+        <span style="color: var(--text-muted); font-size: 0.75rem;">▾</span>
+      </button>
+      <button id="btnResetNow" class="btn-soft" style="display: none;">Return to Live Now</button>
+    </div>
+
+    <div class="top-actions">
+      <button id="btnUnits">FT / MPH / °F</button>
+      <button id="btnRefresh" title="Refresh Live Buoy & Weather">↻</button>
+      <button id="btnOpenDrawer2" class="btn-dark">All 114 Beaches</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="alert-banner" id="alertBanner"></div>
+
+    <!-- =======================================================================
+         TIER 1: THE BASICS (Simple At-a-Glance Summary + Local Beach Weather)
+         ======================================================================= -->
+    <div class="tier-header">
+      <span class="tier-title">1. Quick Surf & Beach Check</span>
+      <span class="tier-tag">Everyday Overview</span>
+    </div>
+
+    <section class="hero-panel">
+      <div class="hero-left">
+        <h1>
+          <span id="spotTitle">Melbourne Shores</span>
+          <button class="fav-btn" id="heroFavBtn" title="Save Favorite">★</button>
+        </h1>
+        <div class="hero-meta" id="spotSubtitle">Florida · Sand & Coquina Beachbreak · Viewing: Live Now</div>
+        <div class="amateur-call" id="amateurSummary">Fun waist-to-chest high waves with clean offshore winds. Great for most boards.</div>
+      </div>
+
+      <div class="hero-right">
+        <div class="big-surf-size" id="heroSurfRange">3–4 ft</div>
+        <span class="quality-tag q-GOOD" id="heroQualityBadge">GOOD · ★★★★</span>
+      </div>
+    </section>
+
+    <!-- 5 Simple Surf Cards (Wave Vibe, Wind Feel, Tide Stage, Crowdedness, Kook Meter) -->
+    <section class="basic-grid">
+      <div class="metric-tile">
+        <div class="tile-label"><span>Wave Vibe</span><span id="tileBoardRec">Short / Funboard</span></div>
+        <div class="tile-val" id="tileWaveScale">Waist – Chest</div>
+        <div class="tile-sub" id="tileSurfaceNote">Clean face condition</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>Wind Feel</span><span id="tileWindQuality">Clean</span></div>
+        <div class="tile-val" id="tileWindSimple">8 mph Offshore</div>
+        <div class="tile-sub" id="tileWindGustSimple">Gusts to 11 mph</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>Tide Stage</span><span id="tileTideStage">Mid Tide</span></div>
+        <div class="tile-val" id="tileTideHeight">2.4 ft</div>
+        <div class="tile-sub" id="tileTideNext">Rising toward High</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>Crowdedness</span><span id="tileCrowdScore">5.5 / 10</span></div>
+        <div class="tile-val" id="tileCrowdLabel">Moderate</div>
+        <div class="crowd-track">
+          <div class="crowd-fill" id="tileCrowdBar" style="width: 55%; background: #4f46e5;"></div>
+        </div>
+        <div class="tile-sub" id="tileCrowdSub">Manageable peak</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>Kook Meter</span><span id="tileKookScore">4.0 / 10</span></div>
+        <div class="tile-val" id="tileKookLabel">Some Wavestorms</div>
+        <div class="crowd-track">
+          <div class="crowd-fill" id="tileKookBar" style="width: 40%; background: #f59e0b;"></div>
+        </div>
+        <div class="tile-sub" id="tileKookSub">Watch for flying foamies</div>
+      </div>
+    </section>
+
+    <!-- Local Beach Weather & Water Strip -->
+    <section class="weather-strip">
+      <div class="metric-tile">
+        <div class="tile-label"><span>Weather</span><span id="wxConditionIcon">☀</span></div>
+        <div class="tile-val" id="wxAirTemp">78 °F</div>
+        <div class="tile-sub" id="wxSkyDesc">Mostly Clear · Feels 79°</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>Water Temp</span><span>Buoy / SST</span></div>
+        <div class="tile-val" id="wxWaterTemp">74 °F</div>
+        <div class="tile-sub" id="wxWetsuit">Rashguard / Spring Suit</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>UV Index</span><span id="wxUvLevel">High</span></div>
+        <div class="tile-val" id="wxUvVal">UV 7</div>
+        <div class="tile-sub" id="wxSunscreen">Sunscreen advised</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>Rain & Clouds</span><span>Precip</span></div>
+        <div class="tile-val" id="wxRainProb">10% Rain</div>
+        <div class="tile-sub" id="wxCloudCover">20% Cloud Cover</div>
+      </div>
+
+      <div class="metric-tile">
+        <div class="tile-label"><span>Daylight</span><span>Solar</span></div>
+        <div class="tile-val" id="wxSunset">6:45 PM</div>
+        <div class="tile-sub" id="wxSunrise">First light 6:15 AM</div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         TIER 2: FORECAST CHARTS & 7-DAY OUTLOOK (Intermediate)
+         ======================================================================= -->
+    <div class="tier-header">
+      <span class="tier-title">2. Tides & 7-Day Forecast</span>
+      <span class="tier-tag">Click Any Hour or Day to Inspect</span>
+    </div>
+
+    <section class="charts-row">
+      <div class="chart-box">
+        <div class="tile-label">
+          <span>24-Hour Tide Curve (MLLW)</span>
+          <span id="tideStationLabel">NOAA Station</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="tideCanvas"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <div class="tile-label">
+          <span>7-Day Surf Height Trend (3-Hr Bars)</span>
+          <span>Click bar to time-travel</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="swellCanvas"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="day-strip" id="dayStrip"></section>
+
+    <!-- =======================================================================
+         TIER 3: ADVANCED SWELL COMPASS MAP & WAVE PHYSICS (Scroll Down)
+         ======================================================================= -->
+    <div class="tier-header">
+      <span class="tier-title">3. Directional Swell Map & Advanced Wave Telemetry</span>
+      <span class="tier-tag">Directional Wedges + Spectral Breakdown</span>
+    </div>
+
+    <section class="advanced-grid">
+      <!-- Surfline-Style Aerial Satellite Swell & Wind Compass Map -->
+      <div class="swell-map-card">
+        <div class="tile-label">
+          <span>Aerial Swell & Wind Compass</span>
+          <span id="mapCoordsLabel">28.02°N, 80.53°W</span>
+        </div>
+        <div class="swell-map-wrap">
+          <canvas id="swellMapCanvas"></canvas>
+        </div>
+        <div class="swell-map-legend">
+          <span><i class="legend-dot" style="background: #f97316;"></i>Primary Swell</span>
+          <span><i class="legend-dot" style="background: #eab308;"></i>Secondary Swell</span>
+          <span><i class="legend-dot" style="background: #38bdf8;"></i>Wind Wedge</span>
+          <span><b>↑</b> Ideal Offshore</span>
+        </div>
+      </div>
+
+      <!-- Deep Oceanographic Telemetry & 3-Hour Table -->
+      <div class="telemetry-card">
+        <div>
+          <div class="tile-label" style="margin-bottom: 10px;">
+            <span>Directional Swell Trains & Wave Physics</span>
+            <span id="telemetryStatus">Live NOAA + Open-Meteo</span>
+          </div>
+          <div class="telemetry-grid">
+            <div class="tech-box">
+              <div class="tile-label"><span>Primary Swell</span><span id="advAlign">Direct</span></div>
+              <div class="tech-val" id="advPrimarySwell">3.5ft @ 12s</div>
+              <div class="tile-sub" id="advPrimaryDir">72° ENE · Groundswell</div>
+            </div>
+            <div class="tech-box">
+              <div class="tile-label"><span>Secondary Swell</span><span>Train 2</span></div>
+              <div class="tech-val" id="advSecSwell">1.8ft @ 8s</div>
+              <div class="tile-sub" id="advSecDir">110° ESE · Windswell</div>
+            </div>
+            <div class="tech-box">
+              <div class="tile-label"><span>Wave Energy</span><span>Power</span></div>
+              <div class="tech-val" id="advEnergy">215 kJ</div>
+              <div class="tile-sub" id="advSpotWindow">Ideal: 45°–115°</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mini-table-wrap">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Face</th>
+                <th>Primary Swell</th>
+                <th>Energy</th>
+                <th>Wind</th>
+                <th>Crowdedness</th>
+                <th>Kook Meter</th>
+              </tr>
+            </thead>
+            <tbody id="hourlyTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SLIDE-OUT DRAWER (114 SURF BREAKS DIRECTORY) -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
+  <aside class="drawer" id="mainDrawer">
+    <div class="drawer-header">
+      <h2>Select Surf Break (114 Spots)</h2>
+      <button id="btnCloseDrawer" style="padding: 4px 9px;">✕</button>
+    </div>
+
+    <input type="text" id="spotSearch" class="search-box" placeholder="Search Melbourne Shores, Venice, Topanga, Malibu..." />
+
+    <div class="region-pills" id="regionTabs">
+      <button class="region-pill active" data-region="ALL">All (114)</button>
+      <button class="region-pill" data-region="Florida">Florida (27)</button>
+      <button class="region-pill" data-region="LA & SoCal">LA & SoCal (30)</button>
+      <button class="region-pill" data-region="NorCal">NorCal (13)</button>
+      <button class="region-pill" data-region="Hawaii">Hawaii (16)</button>
+      <button class="region-pill" data-region="East Coast">East Coast (20)</button>
+      <button class="region-pill" data-region="Gulf & PNW">Gulf & PNW (8)</button>
+      <button class="region-pill" data-region="FAV">★ Saved</button>
+    </div>
+
+    <div class="spots-scroll" id="spotList"></div>
+  </aside>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
