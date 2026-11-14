@@ -1,10 +1,43 @@
 /**
- * Fetches live Open-Meteo Marine + Open-Meteo Weather + NOAA CO-OPS Tide & Buoy Temp
- * with a 20-minute localStorage cache and automatic offline fallback synthesizer.
+ * Fetches live Open-Meteo Marine + Open-Meteo Weather + NOAA CO-OPS Tide & Buoy Temp.
+ * Supports Stale-While-Revalidate instant rendering: getInstantBundle() returns
+ * cached or synthesized data in 0ms so charts draw immediately while fetchSpotBundle()
+ * resolves live buoy telemetry in the background.
  */
 export class MarineApiClient {
   static CACHE_TTL_MS = 20 * 60 * 1000;
 
+  /**
+   * Returns synchronously in 0ms: either cached buoy data from localStorage
+   * or an instant oceanographic baseline so charts render on frame 1.
+   */
+  static getInstantBundle(spot, forceRefresh = false) {
+    const cacheKey = `swell_v4_${spot.id}`;
+    if (!forceRefresh) {
+      try {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const isFresh = Date.now() - parsed.timestamp < MarineApiClient.CACHE_TTL_MS;
+          return {
+            ...parsed.data,
+            fromCache: true,
+            isStale: !isFresh,
+            isInstantSeed: false
+          };
+        }
+      } catch (e) {}
+    }
+
+    const seed = MarineApiClient.generateFallbackBundle(spot, null);
+    seed.isFallback = false;
+    seed.isInstantSeed = true;
+    return seed;
+  }
+
+  /**
+   * Fetches fresh live telemetry from Open-Meteo Marine, Open-Meteo Weather, and NOAA CO-OPS.
+   */
   static async fetchSpotBundle(spot, forceRefresh = false) {
     const cacheKey = `swell_v4_${spot.id}`;
     if (!forceRefresh) {
@@ -13,7 +46,7 @@ export class MarineApiClient {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Date.now() - parsed.timestamp < MarineApiClient.CACHE_TTL_MS) {
-            return { ...parsed.data, fromCache: true };
+            return { ...parsed.data, fromCache: true, isInstantSeed: false };
           }
         }
       } catch (e) {}
@@ -40,12 +73,19 @@ export class MarineApiClient {
       `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?date=latest` +
       `&station=${spot.noaaStationId}&product=water_temperature&units=english&time_zone=lst_ldt&format=json`;
 
+    // Helper with a 3.5-second timeout so slow NOAA stations never stall the update
+    const fetchWithTimeout = (url, ms = 3500) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
+    };
+
     try {
       const [marineRes, weatherRes, tideRes, tempRes] = await Promise.allSettled([
-        fetch(marineUrl).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-        fetch(weatherUrl).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
-        fetch(noaaTideUrl).then(r => r.ok ? r.json() : null),
-        fetch(noaaTempUrl).then(r => r.ok ? r.json() : null)
+        fetchWithTimeout(marineUrl, 4500).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetchWithTimeout(weatherUrl, 4500).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetchWithTimeout(noaaTideUrl, 3000).then(r => r.ok ? r.json() : null),
+        fetchWithTimeout(noaaTempUrl, 3000).then(r => r.ok ? r.json() : null)
       ]);
 
       if (marineRes.status !== "fulfilled" || weatherRes.status !== "fulfilled") {
@@ -76,6 +116,8 @@ export class MarineApiClient {
       const bundle = {
         spotId: spot.id,
         isFallback: false,
+        isInstantSeed: false,
+        fromCache: false,
         sunrise: daily?.sunrise?.[0] || null,
         sunset: daily?.sunset?.[0] || null,
         hourly: MarineApiClient.mergeHourlyStreams(marine, weather, noaaWaterTempF),
@@ -181,7 +223,8 @@ export class MarineApiClient {
 
     return {
       spotId: spot.id,
-      isFallback: true,
+      isFallback: Boolean(errorReason),
+      isInstantSeed: !errorReason,
       fallbackReason: errorReason,
       sunrise: null,
       sunset: null,

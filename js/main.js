@@ -4,7 +4,8 @@ import { SurfAnalyticsEngine } from "./surfAnalyticsEngine.js";
 import { ChartRenderer } from "./chartRenderer.js";
 
 /**
- * Orchestrates spot selection, unit toggling, live buoy fetches, and UI updates.
+ * Orchestrates spot selection, unit toggling, instant 0ms chart rendering,
+ * and background live buoy synchronization.
  */
 export class AppController {
   constructor() {
@@ -148,16 +149,39 @@ export class AppController {
   async loadSpot(spot, forceRefresh) {
     document.getElementById("navSpotName").textContent = spot.name;
     document.getElementById("navSpotRegion").textContent = spot.region;
-    this.bundle = await MarineApiClient.fetchSpotBundle(spot, forceRefresh);
+
+    // 1. INSTANT 0ms RENDER: Draw cards and all 3 canvases immediately on frame 1
+    // using either cached data or the instant baseline generator.
+    const instantBundle = MarineApiClient.getInstantBundle(spot, forceRefresh);
+    this.bundle = instantBundle;
+    this.setToLiveNow();
+    this.renderAll();
 
     const banner = document.getElementById("alertBanner");
-    if (this.bundle.isFallback) {
+    banner.style.display = "none";
+
+    // If we already had a fresh (<20 min) cache hit and didn't force refresh, we're done!
+    if (instantBundle.fromCache && !instantBundle.isStale && !forceRefresh) {
+      document.getElementById("telemetryStatus").textContent = "Cached (20m TTL)";
+      return;
+    }
+
+    // 2. BACKGROUND LIVE SYNC: Fetch live NOAA + Open-Meteo data without blocking the UI
+    document.getElementById("telemetryStatus").textContent = "Syncing Live Buoys...";
+    const requestedSpotId = spot.id;
+    const liveBundle = await MarineApiClient.fetchSpotBundle(spot, forceRefresh);
+
+    // Ensure the user hasn't clicked a different beach while the request was in flight
+    if (this.currentSpot.id !== requestedSpotId) return;
+
+    this.bundle = liveBundle;
+    if (liveBundle.isFallback) {
       banner.style.display = "block";
-      banner.textContent = `Buoy API offline (${this.bundle.fallbackReason}). Showing modeled forecast for ${spot.name}.`;
+      banner.textContent = `Buoy API offline (${liveBundle.fallbackReason}). Showing modeled forecast for ${spot.name}.`;
       document.getElementById("telemetryStatus").textContent = "Simulated Fallback";
     } else {
       banner.style.display = "none";
-      document.getElementById("telemetryStatus").textContent = this.bundle.fromCache ? "Cached (20m TTL)" : "Live NOAA + Open-Meteo";
+      document.getElementById("telemetryStatus").textContent = "Live NOAA + Open-Meteo";
     }
 
     this.setToLiveNow();
